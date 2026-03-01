@@ -1,0 +1,73 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь", "Покупатель онлайн-магазина")
+
+System_Boundary(system, "Инфраструктура онлайн-магазина «Мобильный мир»") {
+
+  Container(apiGateway, "API Gateway", "Reverse Proxy / Load Balancer", "Балансирует трафик между инстансами приложения")
+  Container(consul, "Consul", "Service Discovery", "Реестр сервисов и health-check. Хранит список активных инстансов приложения")
+
+  System_Boundary(appCluster, "Приложение (несколько инстансов)") {
+    Container(api1, "pymongo-api-1", "Python / FastAPI", "Инстанс API-сервиса")
+    Container(api2, "pymongo-api-2", "Python / FastAPI", "Инстанс API-сервиса")
+    Container(api3, "pymongo-api-3", "Python / FastAPI", "Инстанс API-сервиса")
+  }
+
+  Container(redis, "Redis", "Кэш", "Кэширование часто запрашиваемых данных (read-through cache)")
+  Container(mongos, "mongos", "MongoDB Router", "Маршрутизирует запросы к соответствующему шарду")
+
+  System_Boundary(configRS, "Config Servers (Replica Set)") {
+    Container(config1, "configSrv-1", "MongoDB", "Узел хранения метаданных")
+    Container(config2, "configSrv-2", "MongoDB", "Реплика узла метаданных")
+    Container(config3, "configSrv-3", "MongoDB", "Реплика узла метаданных")
+  }
+
+  System_Boundary(shard1RS, "Шард 1 (Replica Set)") {
+    Container(shard1_1, "shard1-1", "MongoDB Primary", "Основной узел шарда")
+    Container(shard1_2, "shard1-2", "MongoDB Secondary", "Реплика шарда")
+    Container(shard1_3, "shard1-3", "MongoDB Secondary", "Реплика шарда")
+  }
+
+  System_Boundary(shard2RS, "Шард 2 (Replica Set)") {
+    Container(shard2_1, "shard2-1", "MongoDB Primary", "Основной узел шарда")
+    Container(shard2_2, "shard2-2", "MongoDB Secondary", "Реплика шарда")
+    Container(shard2_3, "shard2-3", "MongoDB Secondary", "Реплика шарда")
+  }
+}
+
+' --- Внешний трафик + балансировка
+Rel(user, apiGateway, "HTTP-запросы")
+Rel(apiGateway, api1, "Маршрутизация/балансировка HTTP")
+Rel(apiGateway, api2, "Маршрутизация/балансировка HTTP")
+Rel(apiGateway, api3, "Маршрутизация/балансировка HTTP")
+
+' --- Service Discovery
+Rel(api1, consul, "Регистрация сервиса + health-check")
+Rel(api2, consul, "Регистрация сервиса + health-check")
+Rel(api3, consul, "Регистрация сервиса + health-check")
+Rel(apiGateway, consul, "Получение списка доступных инстансов (Service Discovery)")
+
+' --- Кэш + MongoDB
+Rel(api1, redis, "Чтение/запись кэша")
+Rel(api2, redis, "Чтение/запись кэша")
+Rel(api3, redis, "Чтение/запись кэша")
+
+Rel(api1, mongos, "Запрос к MongoDB при отсутствии данных в кэше")
+Rel(api2, mongos, "Запрос к MongoDB при отсутствии данных в кэше")
+Rel(api3, mongos, "Запрос к MongoDB при отсутствии данных в кэше")
+
+' --- Внутренности шардинга (как в варианте 3)
+Rel(mongos, config1, "")
+Rel(mongos, config2, "Получение метаданных")
+Rel(mongos, config3, "")
+
+Rel(mongos, shard1_1, "")
+Rel(mongos, shard1_2, "Маршрутизация запроса")
+Rel(mongos, shard1_3, "")
+
+Rel(mongos, shard2_1, "")
+Rel(mongos, shard2_2, "Маршрутизация запроса")
+Rel(mongos, shard2_3, "")
+
+@enduml
