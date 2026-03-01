@@ -1,0 +1,48 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь", "Покупатель онлайн-магазина")
+
+System_Boundary(system, "Инфраструктура онлайн-магазина «Мобильный мир»") {
+
+  Container(api, "pymongo-api", "Python / FastAPI", "API-сервис обработки заказов и работы с базой данных")
+  Container(redis, "Redis", "Кэш", "Кэширование часто запрашиваемых данных (read-through cache)")
+  Container(mongos, "mongos", "MongoDB Router", "Маршрутизирует запросы к соответствующему шарду")
+
+  System_Boundary(configRS, "Config Servers (Replica Set)") {
+    Container(config1, "configSrv-1", "MongoDB", "Узел хранения метаданных")
+    Container(config2, "configSrv-2", "MongoDB", "Реплика узла метаданных")
+    Container(config3, "configSrv-3", "MongoDB", "Реплика узла метаданных")
+  }
+
+  System_Boundary(shard1RS, "Шард 1 (Replica Set)") {
+    Container(shard1_1, "shard1-1", "MongoDB Primary", "Основной узел шарда")
+    Container(shard1_2, "shard1-2", "MongoDB Secondary", "Реплика шарда")
+    Container(shard1_3, "shard1-3", "MongoDB Secondary", "Реплика шарда")
+  }
+
+  System_Boundary(shard2RS, "Шард 2 (Replica Set)") {
+    Container(shard2_1, "shard2-1", "MongoDB Primary", "Основной узел шарда")
+    Container(shard2_2, "shard2-2", "MongoDB Secondary", "Реплика шарда")
+    Container(shard2_3, "shard2-3", "MongoDB Secondary", "Реплика шарда")
+  }
+}
+
+Rel(user, api, "HTTP-запрос")
+
+Rel(api, redis, "Чтение/запись кэша")
+Rel(api, mongos, "Запрос к MongoDB при отсутствии данных в кэше")
+
+Rel(mongos, config1, "")
+Rel(mongos, config2, "Получение метаданных")
+Rel(mongos, config3, "")
+
+Rel(mongos, shard1_1, "")
+Rel(mongos, shard1_2, "Маршрутизация запроса")
+Rel(mongos, shard1_3, "")
+
+Rel(mongos, shard2_1, "")
+Rel(mongos, shard2_2, "Маршрутизация запроса")
+Rel(mongos, shard2_3, "")
+
+@enduml
