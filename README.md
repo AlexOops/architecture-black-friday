@@ -1,35 +1,68 @@
-# pymongo-api
+# architecture-black-friday
+Проект демонстрирует эволюцию архитектуры MongoDB и приложения:
+1. Sharding
+2. Sharding + Replica Sets
+3. Sharding + Replica + Redis
+4. Service Discovery + API Gateway
+5. CDN
 
-## Как запустить
+`Каждый вариант реализован в отдельной директории.`
 
-Запускаем mongodb и приложение
+## Структура проекта
 
-```shell
-docker compose up -d
-```
+| Директория            | Назначение                                            |
+| --------------------- | ----------------------------------------------------- |
+| `mongo-sharding`      | Базовое шардирование                                  |
+| `mongo-sharding-repl` | Шардирование + репликация                             |
+| `sharding-repl-cache` | Финальная версия (Replica + Redis + Gateway + Consul) |
+| `task1`               | C4 схема шардирования                                 |
+| `task5`               | C4 схема с API Gateway + Consul                       |
+| `task6`               | C4 схема с CDN                                        |
 
-Заполняем mongodb данными
+Схемы реализованы в формате PlantUML (.puml).
+Дополнительно экспортированы изображения для удобного просмотра.
 
-```shell
-./scripts/mongo-init.sh
-```
+## Как запустить финальную реализацию
+Как запустить финальную реализацию
 
-## Как проверить
+`sharding-repl-cache`
 
-### Если вы запускаете проект на локальной машине
+Перейти в директорию
 
-Откройте в браузере http://localhost:8080
+`cd sharding-repl-cache`
 
-### Если вы запускаете проект на предоставленной виртуальной машине
+Поднять стенд
 
-Узнать белый ip виртуальной машины
+`docker compose up -d --build`
 
-```shell
-curl --silent http://ifconfig.me
-```
+Проверить
 
-Откройте в браузере http://<ip виртуальной машины>:8080
+http://localhost:8000/docs
 
-## Доступные эндпоинты
+### MongoDB
 
-Список доступных эндпоинтов, swagger http://<ip виртуальной машины>:8080/docs
+Используется:
+* Config Replica Set
+* 2 шарда
+* По 3 реплики в каждом шарде
+* Mongos router
+* Redis для кеширования
+* API Gateway для балансировки
+* Consul для Service Discovery
+
+Подробные шаги инициализации находятся в README соответствующих директорий.
+
+## Архитектурные схемы
+
+| Задание            | Файл  |
+| -------------------| ---|
+| `Sharding`   | `task1/Sharding.puml` |
+| `Replica` | `task1/Sharding_Replica.puml`|
+| `Replica + Redis` | `task1/Sharding_Replica_Redis.puml` |
+| `Gateway + Consul`            | `task5/Sharding_Replica_Redis_Gateway_Consul.puml`|
+| `CDN`            | `task6/Sharding_Replica_Redis_Gateway_Consul_CDN.puml`|
+
+
+### Остановка
+
+`docker compose down`
