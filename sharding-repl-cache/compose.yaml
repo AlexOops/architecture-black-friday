@@ -7,9 +7,6 @@ services:
     ports:
       - "6379:6379"
 
-  # -------------------------
-  # Config Servers (Replica Set)
-  # -------------------------
   configSrv-1:
     image: mongo:6
     command: mongod --configsvr --replSet configRS --port 27019 --bind_ip_all
@@ -24,9 +21,6 @@ services:
     image: mongo:6
     command: mongod --configsvr --replSet configRS --port 27019 --bind_ip_all
 
-  # -------------------------
-  # Shard 1 (Replica Set: 3 nodes)
-  # -------------------------
   shard1-1:
     image: mongo:6
     command: mongod --shardsvr --replSet shard1RS --port 27018 --bind_ip_all
@@ -39,9 +33,6 @@ services:
     image: mongo:6
     command: mongod --shardsvr --replSet shard1RS --port 27018 --bind_ip_all
 
-  # -------------------------
-  # Shard 2 (Replica Set: 3 nodes)
-  # -------------------------
   shard2-1:
     image: mongo:6
     command: mongod --shardsvr --replSet shard2RS --port 27018 --bind_ip_all
@@ -54,9 +45,6 @@ services:
     image: mongo:6
     command: mongod --shardsvr --replSet shard2RS --port 27018 --bind_ip_all
 
-  # -------------------------
-  # mongos
-  # -------------------------
   mongos:
     image: mongo:6
     depends_on:
@@ -67,15 +55,14 @@ services:
     ports:
       - "27017:27017"
 
-  # -------------------------
-  # API
-  # -------------------------
   api:
-    build: ./api_app
+    image: kazhem/pymongo_api:1.0.0
     depends_on:
       - mongos
+      - redis
     environment:
-      - MONGO_URL=mongodb://mongos:27017
-      - REDIS_URL=redis://redis:6379
+      MONGODB_URL: "mongodb://mongos:27017"
+      MONGODB_DATABASE_NAME: "somedb"
+      REDIS_URL: "redis://redis:6379"
     ports:
       - "8000:8000"
