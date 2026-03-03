@@ -83,9 +83,18 @@ EOF
 ## 6. Заполнение данными (>= 1000)
 
 ```bash
-docker compose exec -T mongos mongosh --port 27017 <<EOF
+docker compose exec -T mongos mongosh --port 27017 <<'EOF'
 use somedb
-for (let i = 0; i < 2000; i++) { db.helloDoc.insertOne({ value: i }) }
+db.helloDoc.drop()
+
+const bulk = [];
+for (let i = 1; i <= 1500; i++) {
+  bulk.push({
+    insertOne: { document: { name: "user_" + i, age: 18 + (i % 50) } }
+  });
+}
+db.helloDoc.bulkWrite(bulk);
+db.helloDoc.countDocuments();
 EOF
 ```
 
@@ -94,19 +103,19 @@ EOF
 ### Общее количество:
 
 ```bash
-docker compose exec -T mongos mongosh --port 27017 --eval "use somedb; db.helloDoc.countDocuments()"
+docker compose exec -T mongos mongosh --port 27017 --quiet --eval 'db.getSiblingDB("somedb").helloDoc.countDocuments()'
 ```
 
 ### Распределение по шардам:
 
 ```bash
-docker compose exec -T mongos mongosh --port 27017 --eval "use somedb; db.helloDoc.getShardDistribution()"
+docker compose exec -T mongos mongosh --port 27017 --quiet --eval 'db.getSiblingDB("somedb").helloDoc.getShardDistribution()'
 ```
 
 ### Количество реплик (проверка RS)
 ```bash
-docker compose exec -T shard1-1 mongosh --port 27018 --eval "rs.status().members.length"
-docker compose exec -T shard2-1 mongosh --port 27018 --eval "rs.status().members.length"
+docker compose exec -T shard1-1 mongosh --port 27018 --quiet --eval 'rs.status().members.length'
+docker compose exec -T shard2-1 mongosh --port 27018 --quiet --eval 'rs.status().members.length'
 ```
 
 ### Проверка кеширования (Redis)
@@ -119,8 +128,8 @@ docker compose exec -T shard2-1 mongosh --port 27018 --eval "rs.status().members
 
 Например (если collection_name = helloDoc):
 ```bash
-curl -s -w "\nTTFB: %{time_starttransfer}\nTOTAL: %{time_total}\n" http://localhost:8000/helloDoc/users -o /dev/null
-curl -s -w "\nTTFB: %{time_starttransfer}\nTOTAL: %{time_total}\n" http://localhost:8000/helloDoc/users -o /dev/null
+curl -s -w "\nTTFB: %{time_starttransfer}\nTOTAL: %{time_total}\n" http://localhost:8080/helloDoc/users -o /dev/null
+curl -s -w "\nTTFB: %{time_starttransfer}\nTOTAL: %{time_total}\n" http://localhost:8080/helloDoc/users -o /dev/null
 ```
 
 ## Остановка

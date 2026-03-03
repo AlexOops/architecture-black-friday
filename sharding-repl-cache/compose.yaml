@@ -65,4 +65,4 @@ services:
       MONGODB_DATABASE_NAME: "somedb"
       REDIS_URL: "redis://redis:6379"
     ports:
-      - "8000:8000"
+      - "8080:8000"
