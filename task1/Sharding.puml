@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь", "Покупатель онлайн-магазина")
+
+System_Boundary(system, "Инфраструктура онлайн-магазина «Мобильный мир»") {
+
+  Container(api, "pymongo-api", "Python / FastAPI", "API-сервис обработки заказов и работы с базой данных")
+  Container(mongos, "mongos", "MongoDB Router", "Маршрутизирует запросы к соответствующему шарду")
+
+  System_Boundary(configRS, "Config Servers (узлы конфигурации)") {
+    Container(config1, "configSrv-1", "MongoDB", "Метаданные шардинга")
+    Container(config2, "configSrv-2", "MongoDB", "Метаданные шардинга")
+    Container(config3, "configSrv-3", "MongoDB", "Метаданные шардинга")
+  }
+
+  Container(shard1, "shard1", "MongoDB", "Шард 1")
+  Container(shard2, "shard2", "MongoDB", "Шард 2")
+}
+
+Rel(user, api, "HTTP-запрос")
+Rel(api, mongos, "Запрос к MongoDB")
+
+Rel(mongos, config1, "")
+Rel(mongos, config2, "Получение метаданных")
+Rel(mongos, config3, "")
+
+Rel(mongos, shard1, "Маршрутизация запроса")
+Rel(mongos, shard2, "")
+
+@enduml

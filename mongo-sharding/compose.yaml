@@ -1,0 +1,46 @@
+name: mongo-sharding
+
+services:
+
+  configSrv-1:
+    image: mongo:6
+    command: mongod --configsvr --replSet configRS --port 27019 --bind_ip_all
+    ports:
+      - "27019:27019"
+
+  configSrv-2:
+    image: mongo:6
+    command: mongod --configsvr --replSet configRS --port 27019 --bind_ip_all
+
+  configSrv-3:
+    image: mongo:6
+    command: mongod --configsvr --replSet configRS --port 27019 --bind_ip_all
+
+  shard1:
+    image: mongo:6
+    command: mongod --shardsvr --replSet shard1RS --port 27018 --bind_ip_all
+    ports:
+      - "27018:27018"
+
+  shard2:
+    image: mongo:6
+    command: mongod --shardsvr --replSet shard2RS --port 27018 --bind_ip_all
+
+  mongos:
+    image: mongo:6
+    depends_on:
+      - configSrv-1
+      - configSrv-2
+      - configSrv-3
+    command: mongos --configdb configRS/configSrv-1:27019,configSrv-2:27019,configSrv-3:27019 --bind_ip_all
+    ports:
+      - "27017:27017"
+
+  api:
+    build: ./api_app
+    depends_on:
+      - mongos
+    environment:
+      - MONGO_URL=mongodb://mongos:27017
+    ports:
+      - "8000:8000"
